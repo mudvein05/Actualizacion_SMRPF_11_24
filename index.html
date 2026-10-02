@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoreo de la Restauración del Paisaje Forestal (SMRPF 2011–2025) — INAB Guatemala</title>
+    
+    <!-- Metas y OpenGraph -->
+    <meta name="description" content="Portal interactivo y dashboard de resultados de tesis: Avance de las acciones de Restauración del Paisaje Forestal en Guatemala 2011-2025 (INAB).">
+    <meta name="author" content="Presentación de Tesis">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌲</text></svg>">
+
+    <!-- Fuentes Google: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <!-- Leaflet CSS y JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Esri Leaflet (Para capas del geoportal SIG-INAB) -->
+    <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
+
+    <!-- Chart.js 4 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Estilos de la aplicación -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ── BARRA SUPERIOR (HEADER ESTILO PORTAL GRETTEL VARGAS) ── -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Abrir navegación lateral">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="brand-icon">
+                <i class="fa-solid fa-tree"></i>
+            </div>
+            <div class="topbar-titles">
+                <div class="topbar-main-title">
+                    <span>SMRPF Guatemala 2011–2025</span>
+                    <span class="topbar-badge">Defensa de Tesis</span>
+                </div>
+                <div class="topbar-sub-title">
+                    Sistema de Monitoreo de la Restauración del Paisaje Forestal · INAB
+                </div>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <button class="btn-header" id="btnSlideView" title="Ver Diapositiva Canva Original">
+                <i class="fa-solid fa-image"></i>
+                <span>Lámina Canva</span>
+            </button>
+            <button class="btn-header" id="btnDownloadCSV" title="Descargar datos en CSV para Excel">
+                <i class="fa-solid fa-file-csv"></i>
+                <span>Exportar CSV</span>
+            </button>
+            <button class="btn-header highlight" id="btnFullscreen" title="Modo Presentación Pantalla Completa">
+                <i class="fa-solid fa-expand"></i>
+                <span>Presentación</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ── CONTENEDOR PRINCIPAL DE LA APLICACIÓN ── -->
+    <div class="app-container">
+
+        <!-- ── BARRA LATERAL (SIDEBAR TIPO ACORDEÓN GRETTEL VARGAS) ── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">Índice de la Presentación</div>
+                <div class="sidebar-subtitle">Regiones Administrativas</div>
+            </div>
+
+            <nav class="sidebar-nav" id="sidebarNav">
+                <!-- Se llena dinámicamente desde app.js -->
+            </nav>
+        </aside>
+
+        <!-- ── ÁREA DE TRABAJO PRINCIPAL ── -->
+        <main class="main-workspace">
+
+            <!-- Pestañas de Vista Superior -->
+            <div class="workspace-tabs">
+                <button class="tab-btn active" data-view="dashboard">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>Dashboard & Mapa GIS</span>
+                </button>
+                <button class="tab-btn" data-view="comparative">
+                    <i class="fa-solid fa-chart-column"></i>
+                    <span>Comparativa Interregional</span>
+                </button>
+                <button class="tab-btn" data-view="methodology">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    <span>Metodología SMRPF</span>
+                </button>
+
+                <div class="region-indicator-pill" id="currentRegionPill">
+                    <div class="region-indicator-dot"></div>
+                    <span id="currentRegionPillText">General - Guatemala</span>
+                </div>
+            </div>
+
+            <!-- ── VISTA 1: DASHBOARD INTERACTIVO Y MAPA GIS ── -->
+            <div class="view-panel active" id="view-dashboard">
+
+                <!-- Panel Izquierdo: Métricas, KPIs y Gráficas de Canva -->
+                <div class="dashboard-left-pane">
+                    
+                    <!-- Tarjeta Hero de la Región Actual -->
+                    <div class="region-hero-card">
+                        <div>
+                            <div class="region-badge-pill" id="heroBadge">Nacional · 2011–2025</div>
+                            <h1 class="region-hero-title" id="heroTitle">General - Guatemala</h1>
+                            <div class="region-hero-sub">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <span id="heroDeptos">Cobertura Nacional (22 departamentos)</span>
+                            </div>
+                        </div>
+                        <button class="btn-canva-preview" id="btnPreviewSlideInline" title="Ver diseño exacto de Canva">
+                            <i class="fa-solid fa-eye"></i>
+                            <span>Ver Lámina</span>
+                        </button>
+                    </div>
+
+                    <!-- Cuadrícula de 6 KPIs Oficiales -->
+                    <div class="kpi-grid">
+                        <!-- KPI 1: Área Restaurada -->
+                        <div class="kpi-card">
+                            <div class="kpi-top">
+                                <div class="kpi-icon icon-ha">
+                                    <i class="fa-solid fa-leaf"></i>
+                                </div>
+                                <span class="kpi-pill">Superficie</span>
+                            </div>
+                            <div class="kpi-value" id="kpiArea">592,178.79</div>
+                            <div class="kpi-label">Área restaurada (Ha)</div>
+                        </div>
+
+                        <!-- KPI 2: Carbono Capturado -->
+                        <div class="kpi-card">
+                            <div class="kpi-top">
+                                <div class="kpi-icon icon-tco2">
+                                    <i class="fa-solid fa-cloud"></i>
+                                </div>
+                                <span class="kpi-pill">Mitigación</span>
+                            </div>
+                            <div class="kpi-value" id="kpiCarbono">154,729,588.77</div>
+                            <div class="kpi-label">Carbono capturado (TCO2)</div>
+                        </div>
+
+                        <!-- KPI 3: Áreas Protegidas -->
+                        <div class="kpi-card">
+                            <div class="kpi-top">
+                                <div class="kpi-icon icon-ap">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                                <span class="kpi-pill">SIGAP</span>
+                            </div>
+                            <div class="kpi-value" id="kpiAP">83,944.63</div>
+                            <div class="kpi-label">Ha en Áreas Protegidas</div>
+                        </div>
+
+                        <!-- KPI 4: Empleos Generados -->
+                        <div class="kpi-card">
+                            <div class="kpi-top">
+                                <div class="kpi-icon icon-empleos">
+                                    <i class="fa-solid fa-users"></i>
+                                </div>
+                                <span class="kpi-pill">Impacto Social</span>
+                            </div>
+                            <div class="kpi-value" id="kpiEmpleos">308,469</div>
+                            <div class="kpi-label">Empleos generados</div>
+                        </div>
+
+                        <!-- KPI 5: Financiamiento -->
+                        <div class="kpi-card">
+                            <div class="kpi-top">
+                                <div class="kpi-icon icon-fin">
+                                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                                </div>
+                                <span class="kpi-pill">Inversión USD</span>
+                            </div>
+                            <div class="kpi-value" id="kpiFin">$572,967,336.14</div>
+                            <div class="kpi-label">Financiamiento ($)</div>
+                        </div>
+
+                        <!-- KPI 6: Polígonos Reportados -->
+                        <div class="kpi-card">
+                            <div class="kpi-top">
+                                <div class="kpi-icon icon-pol">
+                                    <i class="fa-solid fa-draw-polygon"></i>
+                                </div>
+                                <span class="kpi-pill">Predios</span>
+                            </div>
+                            <div class="kpi-value" id="kpiPoligonos">94,458</div>
+                            <div class="kpi-label">Polígonos reportados</div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfica Circular de Modalidades PROBOSQUE -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <i class="fa-solid fa-chart-pie" style="color: var(--accent-orange)"></i>
+                                <span>Modalidades de Restauración PROBOSQUE</span>
+                            </div>
+                            <span class="chart-badge">Distribución %</span>
+                        </div>
+
+                        <div class="chart-body-wrapper">
+                            <div class="chart-canvas-container">
+                                <canvas id="probosqueChart"></canvas>
+                            </div>
+                            <div class="chart-legend-custom" id="probosqueCustomLegend">
+                                <!-- Llena dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta de Hallazgos y Puntos Clave para la Tesis -->
+                    <div class="highlights-card">
+                        <div class="highlights-title">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            <span>Hallazgos Relevantes para la Defensa de Tesis</span>
+                        </div>
+                        <ul class="highlights-list" id="highlightsList">
+                            <!-- Inyectado por JS -->
+                        </ul>
+                    </div>
+
+                </div>
+
+                <!-- Panel Derecho: Geovisor GIS Leaflet Interactivo (Estilo INAB) -->
+                <div class="dashboard-right-pane">
+                    <div id="map"></div>
+
+                    <!-- Panel Flotante de Control de Capas GIS -->
+                    <div class="map-floating-panel">
+                        <div class="map-panel-title">
+                            <i class="fa-solid fa-layer-group"></i>
+                            <span>Capas Geográficas INAB</span>
+                        </div>
+
+                        <label class="layer-toggle-row">
+                            <span><i class="fa-regular fa-square" style="color:#0ea5e9"></i> Regiones INAB</span>
+                            <input type="checkbox" id="layerChkRegiones" checked>
+                        </label>
+
+                        <label class="layer-toggle-row">
+                            <span><i class="fa-solid fa-draw-polygon" style="color:#10b981"></i> Proyectos SMRPF</span>
+                            <input type="checkbox" id="layerChkProyectos" checked>
+                        </label>
+
+                        <label class="layer-toggle-row">
+                            <span><i class="fa-solid fa-mountain" style="color:#94a3b8"></i> Relieve 3D (Hillshade)</span>
+                            <input type="checkbox" id="layerChkHillshade">
+                        </label>
+
+                        <div class="map-panel-title" style="margin-top: 6px;">
+                            <i class="fa-solid fa-map"></i>
+                            <span>Mapa Base</span>
+                        </div>
+                        <div class="basemap-selector">
+                            <button class="btn-basemap active" data-basemap="sat">Satélite</button>
+                            <button class="btn-basemap" data-basemap="topo">Topo</button>
+                            <button class="btn-basemap" data-basemap="osm">OSM</button>
+                        </div>
+                    </div>
+
+                    <!-- Botón para recentrar mapa a la región activa -->
+                    <button class="map-fullscreen-btn" id="btnRecenterMap" title="Recentrar mapa en la región seleccionada">
+                        <i class="fa-solid fa-crosshairs"></i>
+                        <span>Recentrar Región</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- ── VISTA 2: COMPARATIVA INTERREGIONAL ── -->
+            <div class="view-panel" id="view-comparative">
+                
+                <div class="comparative-grid">
+                    <!-- Gráfica 1: Área Restaurada por Región -->
+                    <div class="comparative-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <i class="fa-solid fa-leaf" style="color: #059669"></i>
+                                <span>Superficie Restaurada por Región (Hectáreas)</span>
+                            </div>
+                        </div>
+                        <div style="height: 320px;">
+                            <canvas id="compAreaChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Gráfica 2: Carbono Capturado por Región -->
+                    <div class="comparative-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <i class="fa-solid fa-cloud" style="color: #0284c7"></i>
+                                <span>Carbono Capturado por Región (TCO2)</span>
+                            </div>
+                        </div>
+                        <div style="height: 320px;">
+                            <canvas id="compCarbonoChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Gráfica 3: Financiamiento vs Empleos -->
+                    <div class="comparative-card full-width">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <i class="fa-solid fa-scale-balanced" style="color: #9333ea"></i>
+                                <span>Relación de Inversión Financiera ($ USD) vs. Empleos Generados</span>
+                            </div>
+                        </div>
+                        <div style="height: 320px;">
+                            <canvas id="compFinEmpleosChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla Resumen con todos los indicadores de tesis -->
+                <div class="table-container">
+                    <div class="table-toolbar">
+                        <div class="chart-title">
+                            <i class="fa-solid fa-table-list"></i>
+                            <span>Matriz de Indicadores Oficiales por Región (2011–2025)</span>
+                        </div>
+                        <input type="text" class="table-search-input" id="tableFilterInput" placeholder="🔍 Filtrar por nombre de región...">
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="thesis-table" id="thesisDataTable">
+                            <thead>
+                                <tr>
+                                    <th>Región</th>
+                                    <th>Departamentos</th>
+                                    <th>Área (Ha)</th>
+                                    <th>Carbono (TCO2)</th>
+                                    <th>Ha en SIGAP</th>
+                                    <th>Empleos</th>
+                                    <th>Inversión ($ USD)</th>
+                                    <th>Polígonos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ── VISTA 3: METODOLOGÍA & SMRPF ── -->
+            <div class="view-panel" id="view-methodology">
+                <div class="method-card">
+                    <h3><i class="fa-solid fa-bullseye" style="color: var(--primary-blue)"></i> Objetivo del Monitoreo y la Investigación</h3>
+                    <p>
+                        Esta investigación y presentación evalúa el <strong>Avance de la Implementación de las Acciones de Restauración del Paisaje Forestal (RPF) en Guatemala durante el período 2011–2025</strong>. Los datos provienen de la sistematización oficial del Sistema de Monitoreo de la Restauración del Paisaje Forestal (SMRPF), liderado por el Instituto Nacional de Bosques (INAB) en coordinación con la Mesa Nacional de Restauración del Paisaje Forestal (MNRPF).
+                    </p>
+                    <p>
+                        A través de este portal interactivo, se pone a disposición del jurado examinador y la comunidad académica una herramienta dinámica para consultar los resultados nacionales y desglosados por las 10 regiones administrativas del INAB, vinculando indicadores biofísicos, socioeconómicos y climáticos con capas espaciales oficiales.
+                    </p>
+                </div>
+
+                <div class="method-card">
+                    <h3><i class="fa-solid fa-gears" style="color: var(--forest-green)"></i> Fundamento Metodológico: Barómetro UICN y SMRPF</h3>
+                    <p>
+                        El SMRPF adopta los estándares internacionales del <em>Barómetro de la Restauración de la UICN</em> y los compromisos adquiridos en el marco del <em>Bonn Challenge</em> e Iniciativa 20x20. Este marco cuantifica la restauración a través de múltiples dimensiones:
+                    </p>
+                    <ul style="padding-left: 20px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 14px;">
+                        <li><strong>Dimensión Biofísica:</strong> Hectáreas bajo restauración, tipología de intervención, ecosistemas estratégicos y presencia en el Sistema Guatemalteco de Áreas Protegidas (SIGAP).</li>
+                        <li><strong>Dimensión Climática:</strong> Estimación de carbono capturado (TCO2 equivalente) según ecuaciones alométricas y modelos de biomasa de las modalidades forestales.</li>
+                        <li><strong>Dimensión Socioeconómica:</strong> Empleos generados en el medio rural (mano de obra directa en plantaciones, mantenimiento y protección) e inversión financiera canalizada vía incentivos forestales (PROBOSQUE y PINPEP) y fuentes complementarias.</li>
+                    </ul>
+                </div>
+
+                <div class="method-card">
+                    <h3><i class="fa-solid fa-shield-virus" style="color: var(--accent-orange)"></i> Modalidades de Restauración Evaluadas</h3>
+                    <p>
+                        En el marco del programa PROBOSQUE (Decreto 37-2015) y mecanismos afines, se desglosan seis modalidades estratégicas:
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 10px;">
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 3px solid #ea580c;">
+                            <strong>M.B.N. Protección:</strong> Manejo de bosque natural con fines prioritarios de conservación de suelos y fuentes de recarga hídrica.
+                        </div>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 3px solid #eab308;">
+                            <strong>Plantaciones Forestales:</strong> Establecimiento de masas forestales con fines comerciales, energéticos e industriales.
+                        </div>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 3px solid #0ea5e9;">
+                            <strong>Restauración de Tierras Degradadas:</strong> Recuperación activa de la cobertura en suelos erosionados o sobreutilizados.
+                        </div>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 3px solid #22c55e;">
+                            <strong>Sistemas Agroforestales:</strong> Combinación de especies arbóreas con cultivos agrícolas (café, cardamomo, cacao) o pastos.
+                        </div>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+                            <strong>M.B.N. Producción:</strong> Manejo sostenible del bosque natural para aprovechamiento maderable y no maderable.
+                        </div>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 3px solid #94a3b8;">
+                            <strong>Manejo de Regeneración Natural:</strong> Asistencia y protección de brotes y plántulas naturales sin plantación artificial.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── BARRA INFERIOR DE NAVEGACIÓN PARA PRESENTACIÓN (ESTILO DIAPOSITIVAS) ── -->
+            <footer class="bottom-presentation-bar">
+                <div class="presentation-controls-left">
+                    <button class="btn-slide-nav" id="btnPrevSlide" title="Región o Diapositiva Anterior (Tecla Flecha Izquierda)">
+                        <i class="fa-solid fa-chevron-left"></i>
+                        <span>Anterior</span>
+                    </button>
+                    <span class="slide-counter-badge" id="slideCounterText">1 / 11 · General</span>
+                    <button class="btn-slide-nav" id="btnNextSlide" title="Región o Diapositiva Siguiente (Tecla Flecha Derecha)">
+                        <span>Siguiente</span>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="presentation-controls-right">
+                    <span class="keyboard-hint">Navega con <span class="kbd">←</span> <span class="kbd">→</span> durante tu exposición</span>
+                    <button class="btn-fullscreen-toggle" id="btnToggleBottomFs" title="Alternar Pantalla Completa">
+                        <i class="fa-solid fa-expand"></i>
+                        <span>Pantalla Completa</span>
+                    </button>
+                </div>
+            </footer>
+
+        </main>
+    </div>
+
+    <!-- ── MODAL: VISTA DE LA DIAPOSITIVA CANVA ORIGINAL ── -->
+    <div class="modal-overlay" id="slideModal">
+        <div class="modal-card">
+            <div class="modal-head">
+                <div class="modal-title" id="modalSlideTitle">Lámina Canva Original — General - Guatemala</div>
+                <button class="modal-close-btn" id="modalCloseBtn" aria-label="Cerrar lámina">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="modalSlideImg" src="assets/slides/page_1.png" alt="Diapositiva Canva Oficial">
+            </div>
+        </div>
+    </div>
+
+    <!-- Carga de datos y lógica -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
